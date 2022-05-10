@@ -108,7 +108,7 @@ typedef struct
   TensorQueryConnection *conn;
 } TensorQueryMsgThreadData;
 
-static int
+static gboolean
 query_tcp_receive (GSocket * socket, uint8_t * data, size_t size,
     GCancellable * cancellable);
 static gboolean query_tcp_send (GSocket * socket, uint8_t * data, size_t size,
@@ -334,8 +334,8 @@ nnstreamer_query_receive (query_connection_handle connection,
     {
       TensorQueryCommand cmd;
 
-      if (query_tcp_receive (conn->socket, (uint8_t *) & cmd, sizeof (cmd),
-              conn->cancellable) < 0) {
+      if (!query_tcp_receive (conn->socket, (uint8_t *) & cmd, sizeof (cmd),
+              conn->cancellable)) {
         nns_loge ("Failed to receive command from socket");
         return -EREMOTEIO;
       }
@@ -346,8 +346,8 @@ nnstreamer_query_receive (query_connection_handle connection,
       if (cmd == _TENSOR_QUERY_CMD_TRANSFER_DATA ||
           cmd <= _TENSOR_QUERY_CMD_RESPOND_DENY) {
         /* receive size */
-        if (query_tcp_receive (conn->socket, (uint8_t *) & data->data.size,
-                sizeof (data->data.size), conn->cancellable) < 0) {
+        if (!query_tcp_receive (conn->socket, (uint8_t *) & data->data.size,
+                sizeof (data->data.size), conn->cancellable)) {
           nns_loge ("Failed to receive data size from socket");
           return -EREMOTEIO;
         }
@@ -357,23 +357,23 @@ nnstreamer_query_receive (query_connection_handle connection,
         }
 
         /* receive data */
-        if (query_tcp_receive (conn->socket, (uint8_t *) data->data.data,
-                data->data.size, conn->cancellable) < 0) {
+        if (!query_tcp_receive (conn->socket, (uint8_t *) data->data.data,
+                data->data.size, conn->cancellable)) {
           nns_loge ("Failed to receive data from socket");
           return -EREMOTEIO;
         }
         return 0;
       } else if (data->cmd == _TENSOR_QUERY_CMD_CLIENT_ID) {
         /* receive client id */
-        if (query_tcp_receive (conn->socket, (uint8_t *) & data->client_id,
-                CLIENT_ID_LEN, conn->cancellable) < 0) {
+        if (!query_tcp_receive (conn->socket, (uint8_t *) & data->client_id,
+                CLIENT_ID_LEN, conn->cancellable)) {
           nns_logd ("Failed to receive client id from socket");
           return -EREMOTEIO;
         }
       } else {
         /* receive data_info */
-        if (query_tcp_receive (conn->socket, (uint8_t *) & data->data_info,
-                sizeof (TensorQueryDataInfo), conn->cancellable) < 0) {
+        if (!query_tcp_receive (conn->socket, (uint8_t *) & data->data_info,
+                sizeof (TensorQueryDataInfo), conn->cancellable)) {
           nns_logd ("Failed to receive data info from socket");
           return -EREMOTEIO;
         }
@@ -677,33 +677,37 @@ nnstreamer_query_server_accept (query_server_handle server_data,
 
 /**
  * @brief [TCP] receive data for tcp server
- * @return 0 if OK, negative value if error
+ * @return TRUE if there are no errors, FALSE otherwise
  */
-static int
+static gboolean
 query_tcp_receive (GSocket * socket, uint8_t * data, size_t size,
     GCancellable * cancellable)
 {
   size_t bytes_received = 0;
   ssize_t rret;
-  GError *err = NULL;
+  GError *err;
+  gchar *err_msg;
 
   while (bytes_received < size) {
+    err = NULL;
     rret = g_socket_receive (socket, (char *) data + bytes_received,
         size - bytes_received, cancellable, &err);
-
-    if (rret == 0) {
-      nns_logi ("Connection closed");
-      return -EREMOTEIO;
+    if (rret > 0) {
+      bytes_received += rret;
+      continue;
     }
 
-    if (rret < 0) {
-      nns_logi ("Failed to read from socket: %s", err->message);
-      g_clear_error (&err);
-      return -EREMOTEIO;
-    }
-    bytes_received += rret;
+    err_msg = (rret == 0) ? g_strdup ("Connection was closed by the peer") :
+        g_strdup_printf("Failed to read data from socket: %s", err->message);
+    goto failed;
   }
-  return 0;
+  return TRUE;
+
+failed:
+  nns_loge ("%s", err_msg);
+  g_free (err_msg);
+  g_clear_error (&err);
+  return FALSE;
 }
 
 /**
