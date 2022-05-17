@@ -367,14 +367,14 @@ nnstreamer_query_receive (query_connection_handle connection,
         /* receive client id */
         if (!query_tcp_receive (conn->socket, (uint8_t *) & data->client_id,
                 CLIENT_ID_LEN, conn->cancellable)) {
-          nns_logd ("Failed to receive client id from socket");
+          nns_loge ("Failed to receive client id from socket");
           return -EREMOTEIO;
         }
       } else {
         /* receive data_info */
         if (!query_tcp_receive (conn->socket, (uint8_t *) & data->data_info,
                 sizeof (TensorQueryDataInfo), conn->cancellable)) {
-          nns_logd ("Failed to receive data info from socket");
+          nns_loge ("Failed to receive data info from socket");
           return -EREMOTEIO;
         }
       }
@@ -410,7 +410,7 @@ nnstreamer_query_send (query_connection_handle connection,
     case _TENSOR_QUERY_PROTOCOL_TCP:
       if (!query_tcp_send (conn->socket, (uint8_t *) & data->cmd,
               sizeof (TensorQueryCommand), conn->cancellable)) {
-        nns_logd ("Failed to send to socket");
+        nns_loge ("Failed to send to socket");
         return -EREMOTEIO;
       }
       if (data->cmd == _TENSOR_QUERY_CMD_TRANSFER_DATA ||
@@ -418,27 +418,27 @@ nnstreamer_query_send (query_connection_handle connection,
         /* send size */
         if (!query_tcp_send (conn->socket, (uint8_t *) & data->data.size,
                 sizeof (data->data.size), conn->cancellable)) {
-          nns_logd ("Failed to send size to socket");
+          nns_loge ("Failed to send size to socket");
           return -EREMOTEIO;
         }
         /* send data */
         if (!query_tcp_send (conn->socket, (uint8_t *) data->data.data,
                 data->data.size, conn->cancellable)) {
-          nns_logd ("Failed to send data to socket");
+          nns_loge ("Failed to send data to socket");
           return -EREMOTEIO;
         }
       } else if (data->cmd == _TENSOR_QUERY_CMD_CLIENT_ID) {
         /* send client id */
         if (!query_tcp_send (conn->socket, (uint8_t *) & data->client_id,
                 CLIENT_ID_LEN, conn->cancellable)) {
-          nns_logd ("Failed to send client id to socket");
+          nns_loge ("Failed to send client id to socket");
           return -EREMOTEIO;
         }
       } else {
         /* send data_info */
         if (!query_tcp_send (conn->socket, (uint8_t *) & data->data_info,
                 sizeof (TensorQueryDataInfo), conn->cancellable)) {
-          nns_logd ("Failed to send data_info to socket");
+          nns_loge ("Failed to send data_info to socket");
           return -EREMOTEIO;
         }
       }
