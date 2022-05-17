@@ -31,8 +31,8 @@
 #define N_BACKLOG 10
 #define CLIENT_ID_LEN sizeof(query_client_id_t)
 
-#ifndef EREMOTEIO
-#define EREMOTEIO 121           /* This is Linux-specific. Define this for non-Linux systems */
+#ifndef G_IO_ERROR
+#define G_IO_ERROR 121           /* This is Linux-specific. Define this for non-Linux systems */
 #endif
 
 /**
@@ -337,7 +337,7 @@ nnstreamer_query_receive (query_connection_handle connection,
       if (!query_tcp_receive (conn->socket, (uint8_t *) & cmd, sizeof (cmd),
               conn->cancellable)) {
         nns_loge ("Failed to receive command from socket");
-        return -EREMOTEIO;
+        return -G_IO_ERROR;
       }
 
       nns_logd ("Received command: %d", cmd);
@@ -349,7 +349,7 @@ nnstreamer_query_receive (query_connection_handle connection,
         if (!query_tcp_receive (conn->socket, (uint8_t *) & data->data.size,
                 sizeof (data->data.size), conn->cancellable)) {
           nns_loge ("Failed to receive data size from socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
 
         if (cmd <= _TENSOR_QUERY_CMD_RESPOND_DENY) {
@@ -360,7 +360,7 @@ nnstreamer_query_receive (query_connection_handle connection,
         if (!query_tcp_receive (conn->socket, (uint8_t *) data->data.data,
                 data->data.size, conn->cancellable)) {
           nns_loge ("Failed to receive data from socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
         return 0;
       } else if (data->cmd == _TENSOR_QUERY_CMD_CLIENT_ID) {
@@ -368,14 +368,14 @@ nnstreamer_query_receive (query_connection_handle connection,
         if (!query_tcp_receive (conn->socket, (uint8_t *) & data->client_id,
                 CLIENT_ID_LEN, conn->cancellable)) {
           nns_loge ("Failed to receive client id from socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
       } else {
         /* receive data_info */
         if (!query_tcp_receive (conn->socket, (uint8_t *) & data->data_info,
                 sizeof (TensorQueryDataInfo), conn->cancellable)) {
           nns_loge ("Failed to receive data info from socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
       }
     }
@@ -411,7 +411,7 @@ nnstreamer_query_send (query_connection_handle connection,
       if (!query_tcp_send (conn->socket, (uint8_t *) & data->cmd,
               sizeof (TensorQueryCommand), conn->cancellable)) {
         nns_loge ("Failed to send to socket");
-        return -EREMOTEIO;
+        return -G_IO_ERROR;
       }
       if (data->cmd == _TENSOR_QUERY_CMD_TRANSFER_DATA ||
           data->cmd <= _TENSOR_QUERY_CMD_RESPOND_DENY) {
@@ -419,27 +419,27 @@ nnstreamer_query_send (query_connection_handle connection,
         if (!query_tcp_send (conn->socket, (uint8_t *) & data->data.size,
                 sizeof (data->data.size), conn->cancellable)) {
           nns_loge ("Failed to send size to socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
         /* send data */
         if (!query_tcp_send (conn->socket, (uint8_t *) data->data.data,
                 data->data.size, conn->cancellable)) {
           nns_loge ("Failed to send data to socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
       } else if (data->cmd == _TENSOR_QUERY_CMD_CLIENT_ID) {
         /* send client id */
         if (!query_tcp_send (conn->socket, (uint8_t *) & data->client_id,
                 CLIENT_ID_LEN, conn->cancellable)) {
           nns_loge ("Failed to send client id to socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
       } else {
         /* send data_info */
         if (!query_tcp_send (conn->socket, (uint8_t *) & data->data_info,
                 sizeof (TensorQueryDataInfo), conn->cancellable)) {
           nns_loge ("Failed to send data_info to socket");
-          return -EREMOTEIO;
+          return -G_IO_ERROR;
         }
       }
       break;
