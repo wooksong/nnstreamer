@@ -1,0 +1,42 @@
+name: GBS Tizen build from Ubuntu
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TIZEN_REPO_BASE: http://download.tizen.org/snapshots/TIZEN/Tizen/Tizen-Base/reference/repos/standard/packages/
+  TIZEN_REPO_UNIFIED: http://download.tizen.org/snapshots/TIZEN/Tizen/Tizen-Unified/reference/repos/standard/packages/
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [ aarch64, x86_64, armv7l]
+    runs-on: ubuntu-20.04
+    steps:
+    - name: "Check Tizen Repos"
+      run: echo "BASE $TIZEN_REPO_BASE UNIFIED $TIZEN_REPO_UNIFIED"
+    - name: "Gen HASH"
+      run: |
+        echo "url_hash_base=$(echo -n "$TIZEN_REPO_BASE" | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
+        echo "url_hash_unified=$(echo -n "$TIZEN_REPO_UNIFIED" | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
+    - uses: actions/cache@v3
+      with:
+        path: ~/GBS-ROOT/local/cache/${{ env.url_hash_base }}
+        key: ${{ matrix.arch }}-${{ env.url_hash_base }}
+    - uses: actions/cache@v3
+      with:
+        path: ~/GBS-ROOT/local/cache/${{ env.url_hash_unified }}
+        key: ${{ matrix.arch }}-${{ env.url_hash_unified }}
+    - uses: actions/checkout@v3
+    - name: prepare deb sources for GBS
+      run: echo "deb [trusted=yes] http://download.tizen.org/tools/latest-release/Ubuntu_20.04/ /" | sudo tee /etc/apt/sources.list.d/tizen.list
+    - name: install GBS
+      run: sudo apt-get update && sudo apt-get install -y gbs
+    - name: configure GBS
+      run: cp .github/workflows/tizen.gbs.conf ~/.gbs.conf
+    - name: run GBS
+      run: gbs build -A ${{ matrix.arch }}
