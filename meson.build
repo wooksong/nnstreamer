@@ -325,6 +325,18 @@ if not get_option('mxnet-support').disabled()
   endif
 endif
 
+# ml-agentd
+ml_agentd_dep = dependency('', required: false)
+is_ml_agent_disabled = get_option('ml-agent-support').disabled()
+if not is_ml_agent_disabled
+  ml_agentd_dep = dependency('ml-agentd', required: false)
+  if not ml_agentd_dep.found()
+    if cc.check_header('ml-agentd/ml-agent-dbus-interface.h', dependencies: [glib_dep], required: not is_ml_agent_disabled)
+      ml_agentd_dep = cc.find_library('ml-agentd', required: true)
+    endif
+  endif
+endif
+
 # features registration to be controlled
 #
 # register feature as follows
@@ -427,6 +439,10 @@ features = {
   'mxnet-support': {
     'extra_deps': [ mxnet_dep ],
     'project_args': { 'ENABLE_MXNET' : 1 }
+  },
+  'ml-agent-support': {
+    'extra_deps': [ ml_agentd_dep ],
+    'project_args': { 'ENABLE_ML_AGENTD' : 1 }
   }
 }
 

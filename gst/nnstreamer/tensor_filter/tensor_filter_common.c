@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include <hw_accel.h>
+#include <ml_agent.h>
 #include <nnstreamer_log.h>
 #include <nnstreamer_util.h>
 
@@ -1435,6 +1436,10 @@ _gtfc_setprop_MODEL (GstTensorFilterPrivate * priv,
         (const gchar **) g_strdupv ((gchar **) prop->model_files);
   }
 
+  mlagent_parse_uri_string(value);
+  g_critical("########################## _gtfc_setprop_MODEL: %s", model_files);
+  g_critical("########################## _gtfc_setprop_MODEL: g_uri_parse_scheme(%s)", (g_uri_parse_scheme(model_files) ? g_uri_parse_scheme(model_files) : "NULL"));
+  g_critical("########################## _gtfc_setprop_MODEL: g_uri_parse_scheme(%s)", (g_uri_parse_scheme("mlagent://hello") ? g_uri_parse_scheme("mlagent://hello") : "NULL"));
   gst_tensor_filter_parse_modelpaths_string (prop, model_files);
 
   if (prop->fwname != NULL && g_ascii_strcasecmp (prop->fwname, "auto") == 0)
